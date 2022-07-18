@@ -27,40 +27,38 @@ function reducer(state, action) {
   }
 }
 
-function useAsync(asyncCallback, initialState) {
+function useAsync(initialState) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  useEffect(() => {
-    const promise = asyncCallback();
+  const run = useCallback((promise) => {
     if(!promise) {
       return
     }
 
-    dispatch({type: 'pending'})
     promise.then(
       (data) => dispatch({type: 'resolved', data}),
       (error) => dispatch({type: 'rejected',error})
-      )
-  }, [asyncCallback])
+      )  
+  }, [])
 
-  return state;
+  return {...state, run};
 }
 
 function PokemonInfo({pokemonName}) {
-  const fetch = useCallback(() => {
-    if(!pokemonName){
-      return;
-    }
-    return fetchPokemon(pokemonName)
- }, [pokemonName])
-
-  const state = useAsync(fetch, {
+  const {data: pokemon, status, error, run} = useAsync({
     status: 'idle', 
     data: null,
     error: null,
   });
-  const {data: pokemon, status, error} = state
 
+  useEffect(() => {
+    if(!pokemonName){
+      return;
+    }
+    run(fetchPokemon(pokemonName));
+  }, [pokemonName, run])
+
+  console.log('rendering');
   switch (status) {
     case 'idle':
       return <span>Submit a pokemon</span>
